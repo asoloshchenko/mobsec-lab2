@@ -9,12 +9,11 @@
          Ниже перечислены разрешения, которые могут показаться нужными. Раскомментируйте только те,
          без которых приложение не работает; остальные оставьте закомментированными или удалите.
          Напоминание показывается уведомлением; фото выбирается системным Photo Picker.
-
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--<uses-permission android:name="android.permission.CAMERA" />-->
+    <!--<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />-->
+    <!--<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />-->
 
     <!-- TODO(ipc-6): объявите здесь собственное разрешение
          edu.androidsec.notes.permission.READ_NOTES с protectionLevel="signature"
