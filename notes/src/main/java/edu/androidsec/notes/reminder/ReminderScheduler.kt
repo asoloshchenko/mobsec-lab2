@@ -1,10 +1,14 @@
 package edu.androidsec.notes.reminder
 
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import edu.androidsec.notes.MainActivity
 import edu.androidsec.notes.R
+import edu.androidsec.notes.deeplink.NoteDeepLink
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -13,21 +17,6 @@ import kotlinx.coroutines.launch
 /**
  * Планировщик напоминаний. Для лабораторной достаточно задержки в корутине уровня процесса:
  * настоящие напоминания делаются через AlarmManager/WorkManager, это тема другой работы.
- *
- * TODO(ipc-4): уведомление с PendingIntent.
- *
- * Лекция 6, блок «PendingIntent и mutability (Android 12/14)»; проверяется шагом 5 чек-листа.
- *
- * Сейчас уведомление строится без PendingIntent: нажатие на него ничего не делает, кнопки
- * «Готово» нет. Нужно:
- * - нажатие на уведомление открывает нужную заметку: `setContentIntent` с
- *   `PendingIntent.getActivity`, ЯВНЫЙ интент на `MainActivity` (компонент указан классом,
- *   данные — `NoteDeepLink.uriFor(noteId)`, действие VIEW) и флаг `FLAG_IMMUTABLE`;
- * - кнопка «Готово» (`addAction`, строка `reminder_action_done`): `PendingIntent.getBroadcast`
- *   с явным интентом на [ReminderActionReceiver], действием [ReminderActionReceiver.ACTION_DONE],
- *   extra [ReminderActionReceiver.EXTRA_NOTE_ID] и тем же `FLAG_IMMUTABLE`;
- * - подумайте, почему неизменяемый PendingIntent важен: получатель не сможет подменить
- *   компонент или extras.
  */
 class ReminderScheduler(
     private val context: Context,
@@ -62,9 +51,38 @@ class ReminderScheduler(
             .setContentText(title)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
+            .setContentIntent(openNoteIntent(noteId))
+            .addAction(
+                0,
+                context.getString(R.string.reminder_action_done),
+                donePendingIntent(noteId),
+            )
             .build()
 
         NotificationManagerCompat.from(context).notify(noteId.toInt(), notification)
+    }
+
+    private fun openNoteIntent(noteId: Long): PendingIntent {
+        val intent = Intent(Intent.ACTION_VIEW, NoteDeepLink.uriFor(noteId))
+            .setClass(context, MainActivity::class.java)
+        return PendingIntent.getActivity(
+            context,
+            noteId.toInt(),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+    }
+
+    private fun donePendingIntent(noteId: Long): PendingIntent {
+        val intent = Intent(context, ReminderActionReceiver::class.java)
+            .setAction(ReminderActionReceiver.ACTION_DONE)
+            .putExtra(ReminderActionReceiver.EXTRA_NOTE_ID, noteId)
+        return PendingIntent.getBroadcast(
+            context,
+            (noteId + DONE_REQUEST_OFFSET).toInt(),
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
     }
 
     companion object {
@@ -72,5 +90,6 @@ class ReminderScheduler(
         /** Id канала фиксирован заданием. */
         const val CHANNEL_ID = "reminders"
         const val DEFAULT_DELAY_MILLIS = 10_000L
+        private const val DONE_REQUEST_OFFSET = 100_000L
     }
 }

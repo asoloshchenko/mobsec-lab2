@@ -2,22 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- TODO(ipc-1): разрешения.
-         Лекция 5, блоки «Protection levels» и «Изменения 2020–2024: scoped storage, photo picker,
-         POST_NOTIFICATIONS»; проверяется шагом 1 чек-листа.
-
-         Ниже перечислены разрешения, которые могут показаться нужными. Раскомментируйте только те,
-         без которых приложение не работает; остальные оставьте закомментированными или удалите.
-         Напоминание показывается уведомлением; фото выбирается системным Photo Picker.
-    -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!--<uses-permission android:name="android.permission.CAMERA" />-->
-    <!--<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />-->
-    <!--<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />-->
 
-    <!-- TODO(ipc-6): объявите здесь собственное разрешение
-         edu.androidsec.notes.permission.READ_NOTES с protectionLevel="signature"
-         (см. TitlesProvider.kt). -->
+    <permission
+        android:name="edu.androidsec.notes.permission.READ_NOTES"
+        android:protectionLevel="signature"
+        android:label="@string/permission_read_notes_label"
+        android:description="@string/permission_read_notes_description" />
 
     <application
         android:name=".NotesApp"
@@ -27,14 +18,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Notes">
 
-        <!-- TODO(ipc-1): у КАЖДОГО компонента в итоговом (merged) манифесте должен быть явно
-             задан android:exported, а экспортированы только лаунчер, провайдер заголовков и
-             компоненты, закрытые разрешением уровня signature.
-             Merged manifest включает компоненты библиотек: посмотрите его во вкладке
-             Merged Manifest в Android Studio или командой scripts/check.sh manifest.
-             Для каждого экспортированного компонента библиотеки разберитесь, кто может его
-             вызвать. Ненужный компонент убирается через tools:node="remove"; на защите
-             объясните, почему убрали или оставили. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -44,18 +27,39 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- TODO(ipc-3): intent-filter для deep link notes://note/<id> (см. NoteDeepLink.kt). -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="note"
+                    android:scheme="notes" />
+            </intent-filter>
         </activity>
 
-        <!-- TODO(ipc-4): объявите ресивер .reminder.ReminderActionReceiver, закрытый для других
-             приложений (см. ReminderActionReceiver.kt). -->
+        <receiver
+            android:name=".reminder.ReminderActionReceiver"
+            android:exported="false" />
 
-        <!-- TODO(ipc-5): объявите androidx.core.content.FileProvider с authority
-             edu.androidsec.notes.files (см. ShareNote.kt). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="edu.androidsec.notes.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
-        <!-- TODO(ipc-6): объявите провайдер .provider.TitlesProvider с authority
-             edu.androidsec.notes.provider, защищённый signature-разрешением
-             (см. TitlesProvider.kt). -->
+        <provider
+            android:name=".provider.TitlesProvider"
+            android:authorities="edu.androidsec.notes.provider"
+            android:exported="true"
+            android:permission="edu.androidsec.notes.permission.READ_NOTES" />
+
+        <receiver
+            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+            tools:node="remove" />
     </application>
 
 </manifest>

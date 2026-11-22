@@ -16,25 +16,6 @@ sealed interface IncomingNote {
     data object None : IncomingNote
 }
 
-/**
- * TODO(ipc-3): deep link `notes://note/<id>`.
- *
- * Лекция 6, блок «Deep links и App Links»; проверяется шагом 4 чек-листа.
- *
- * 1. В манифесте добавьте `MainActivity` intent-filter с действием VIEW, категориями DEFAULT и
- *    BROWSABLE и данными `scheme="notes"`, `host="note"`.
- * 2. Реализуйте [parse]: данные интента — недоверенный ввод. Принимайте только схему `notes`,
- *    хост `note` и ровно один сегмент пути, который разбирается в положительное Long.
- *    Всё остальное — [IncomingNote.Invalid]: приложение показывает сообщение и не падает
- *    (обработка [IncomingNote] в `NotesNavHost` уже есть).
- * 3. Несуществующий id (`notes://note/999999`) не должен ронять экран заметки и не должен
- *    открывать пустой редактор: см. TODO(ipc-3) в `NoteViewModel`.
- *
- * Проверка: `adb shell am start -a android.intent.action.VIEW -d notes://note/1`,
- * затем то же с `999999`, `abc` и пустым id; в logcat не должно быть `FATAL EXCEPTION`.
- *
- * Сейчас это заглушка: любой интент считается обычным запуском.
- */
 object NoteDeepLink {
     const val SCHEME = "notes"
     const val HOST = "note"
@@ -43,6 +24,15 @@ object NoteDeepLink {
     fun uriFor(noteId: Long): Uri = "$SCHEME://$HOST/$noteId".toUri()
 
     fun parse(intent: Intent?): IncomingNote {
-        return IncomingNote.None
+        if (intent?.action != Intent.ACTION_VIEW) return IncomingNote.None
+        val data = intent.data ?: return IncomingNote.None
+        if (!SCHEME.equals(data.scheme, ignoreCase = true)) return IncomingNote.None
+        if (data.host != HOST) return IncomingNote.None
+
+        val segments = data.pathSegments
+        if (segments.size != 1) return IncomingNote.Invalid
+
+        val id = segments.single().toLongOrNull()
+        return if (id != null && id > 0L) IncomingNote.Open(id) else IncomingNote.Invalid
     }
 }
